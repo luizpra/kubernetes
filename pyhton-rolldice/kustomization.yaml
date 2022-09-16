@@ -7,6 +7,11 @@ resources:
 commonLabels:
   app: rolldice
 
+images:
+  - name: ghcr.io/luizpra/app-non-instrumented-rolldice
+    newName: ghcr.io/luizpra/app-non-instrumented-rolldice
+    newTag: 0.0.2
+
 replicas:
   - name: rolldice
     count: 1
