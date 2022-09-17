@@ -1,0 +1,40 @@
+namespace: test
+
+resources:
+  - serviceaccount.yaml
+  - service.yaml
+  - deployment.yaml
+
+commonLabels:
+  app: kiali
+
+images:
+  - name: quay.io/kiali/kiali
+    newName: quay.io/kiali/kiali
+    newTag: v1.55
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: kiali
+      spec:
+        template:
+          spec:
+            volumes:
+              - name: storage-volume
+                persistentVolumeClaim:
+                  claimName: kiali
+
+replicas:
+  - name: kiali
+    count: 1
+
+configMapGenerator:
+  - name: kiali-envs
+    envs:
+      - kiali.env
+  - name: kiali
+    files:
+      - config.yaml

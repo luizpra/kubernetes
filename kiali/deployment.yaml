@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kiali
+spec:
+  template:
+    metadata:
+      labels:
+    spec:
+      serviceAccountName: kiali
+      containers:
+        - name: kiali
+          image: "quay.io/kiali/kiali:v1.55"
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - name: api-port
+              containerPort: 20001
+            - name: http-metrics
+              containerPort: 9090
+          env:
+          - name: ACTIVE_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace              
+          envFrom:
+            - configMapRef:
+                name: kiali-envs
+          readinessProbe:
+            httpGet:
+              path: /kiali/healthz
+              port: api-port
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /kiali/healthz
+              port: api-port
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 500m
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/kiali/kiali.ini
+              subPath: kiali.ini
+            - name: storage-volume
+              mountPath: /var/lib/kiali
+            - name: config-volume
+              mountPath: "/etc/kiali/provisioning/datasources/datasources.yaml"
+              subPath: "datasources.yaml"
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: kiali
+
