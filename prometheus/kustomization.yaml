@@ -11,28 +11,25 @@ resources:
 commonLabels:
   app: prometheus
 
+images:
+  - name: prom/prometheus
+    newName: prom/prometheus
+    newTag: v2.34.0
+
 patches:
-  - target:
-      kind: ClusterRoleBinding
-      name: prometheus  
-    patch: |-
-      - op: add
-        path: /subjects/0/namespace
-        value: default
   # Patch to setup storage-volume as a empty dir
-  - patch: |-
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: prometheus
-      spec:
-        template:
-          spec:
-            volumes:
-              - name: storage-volume
-                emptyDir: {} 
+  # - patch: |-
+  #     apiVersion: apps/v1
+  #     kind: Deployment
+  #     metadata:
+  #       name: prometheus
+  #     spec:
+  #       template:
+  #         spec:
+  #           volumes:
+  #             - name: storage-volume
+  #               emptyDir: {} 
   # Patch to setup storage-volume as a persistent volume
-  # as the name of volume is the same "storage-volume" it`ll override empty dir definition
   - patch: |-
       apiVersion: apps/v1
       kind: Deployment
