@@ -1,0 +1,42 @@
+namespace: test
+
+resources:
+  - serviceaccount.yaml
+  - service.yaml
+  - deployment.yaml
+  - peristentvolumeclaim.yaml
+
+commonLabels:
+  app: grafana
+
+images:
+  - name: grafana/grafana
+    newName: grafana/grafana
+    newTag: 9.0.1
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: grafana
+      spec:
+        template:
+          spec:
+            volumes:
+              - name: storage-volume
+                persistentVolumeClaim:
+                  claimName: grafana
+
+replicas:
+  - name: grafana
+    count: 1
+
+configMapGenerator:
+  - name: grafana-envs
+    envs:
+      - grafana.env
+  - name: grafana
+    files:
+      - grafana.ini
+      - datasources.yaml
