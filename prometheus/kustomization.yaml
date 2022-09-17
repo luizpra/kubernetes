@@ -1,0 +1,67 @@
+namespace: default
+
+resources:
+  - serviceaccount.yaml
+  - clusterrole.yaml
+  - clusterrolebinding.yaml
+  - service.yaml
+  - deployment.yaml
+  - peristentvolumeclaim.yaml
+
+commonLabels:
+  app: prometheus
+
+patches:
+  - target:
+      kind: ClusterRoleBinding
+      name: prometheus  
+    patch: |-
+      - op: add
+        path: /subjects/0/namespace
+        value: default
+  # Patch to setup storage-volume as a empty dir
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: prometheus
+      spec:
+        template:
+          spec:
+            volumes:
+              - name: storage-volume
+                emptyDir: {} 
+  # Patch to setup storage-volume as a persistent volume
+  # as the name of volume is the same "storage-volume" it`ll override empty dir definition
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: prometheus
+      spec:
+        template:
+          spec:
+            volumes:
+              - name: storage-volume
+                persistentVolumeClaim:
+                  claimName: prometheus                  
+  # - target:
+  #     kind: Deployment
+  #     name: prometheus  
+  #   patch: |-
+  #     - op: add
+  #       path: /spec/template/metadata/labels/sidecar.istio.io~1inject
+  #       value: false
+
+replicas:
+  - name: prometheus
+    count: 1
+
+configMapGenerator:
+  - name: prometheus
+    files:
+      - alerting_rules.yml
+      - alerts
+      - prometheus.yml
+      - recording_rules.yml
+      - rules
