@@ -4,6 +4,8 @@ resources:
 - service.yaml
 - deployment.yaml
 
+namespace: default
+
 commonLabels:
   app: rolldice
 

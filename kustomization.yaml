@@ -1,4 +1,4 @@
 resources:
-- prometheus
-
-namespace: test
+- certmanager
+- opentelemetry/operator
+- python-rolldice

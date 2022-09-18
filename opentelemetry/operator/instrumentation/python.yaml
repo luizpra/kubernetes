@@ -1,0 +1,14 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: non-otel-python-instrumentation
+spec:
+  resource:
+    addK8sUIDAttributes: true
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: always_on
+  python:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.30b1

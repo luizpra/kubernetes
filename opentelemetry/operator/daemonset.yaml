@@ -1,0 +1,25 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: oteld
+spec:
+  mode: daemonset
+  hostNetwork: true
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    processors:
+    exporters:
+      logging:
+        loglevel: debug
+      zipkin:
+        endpoint: "http://zipkin.opentelemetry-operator-system.svc.cluster.local:9411/api/v2/spans"
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: []
+          exporters: [logging, zipkin]

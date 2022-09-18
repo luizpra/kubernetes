@@ -1,0 +1,6 @@
+resources:
+- https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
+- instrumentation
+- sidecar.yaml
+- daemonset.yaml
+ 
