@@ -1,4 +1,4 @@
-namespace: test
+namespace: default
 
 resources:
   - serviceaccount.yaml
@@ -40,3 +40,8 @@ configMapGenerator:
     files:
       - grafana.ini
       - datasources.yaml
+      - dashboardproviders.yaml
+  - name: dashboards-k8s
+    files:
+      - k8s-resources.json
+

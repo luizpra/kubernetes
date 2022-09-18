@@ -40,6 +40,11 @@ spec:
             - name: config-volume
               mountPath: "/etc/grafana/provisioning/datasources/datasources.yaml"
               subPath: "datasources.yaml"
+            - name: config-volume
+              mountPath: "/etc/grafana/provisioning/dashboards/dashboardproviders.yaml"
+              subPath: "dashboardproviders.yaml"              
+            - name: dashboards-k8s
+              mountPath: "/var/lib/grafana/dashboards/k8s"              
       securityContext:
         fsGroup: 472
         runAsGroup: 472
@@ -49,4 +54,7 @@ spec:
         - name: config-volume
           configMap:
             name: grafana
+        - name: dashboards-k8s
+          configMap:
+            name: dashboards-k8s
 
