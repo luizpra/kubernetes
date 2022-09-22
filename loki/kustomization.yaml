@@ -1,0 +1,34 @@
+namespace: default
+
+resources:
+  - role.yaml
+  - rolebinding.yaml
+  - serviceaccount.yaml
+  - service.yaml
+  - statefulset.yaml
+  - peristentvolumeclaim.yaml
+
+commonLabels:
+  app: loki
+
+images:
+  - name: grafana/loki
+    newName: grafana/loki
+    newTag: 2.6.1
+
+replicas:
+  - name: loki
+    count: 1
+
+# configMapGenerator:
+#   - name: loki-envs
+#     envs:
+#       - loki.env
+#   - name: loki
+#     files:
+#       - loki.yaml
+
+secretGenerator:
+  - name: loki
+    files:
+      - loki.yaml

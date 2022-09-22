@@ -1,0 +1,27 @@
+namespace: default
+
+resources:
+  - clusterrole.yaml
+  - clusterrolebinding.yaml
+  - serviceaccount.yaml
+  - service.yaml
+  - daemonset.yaml
+
+commonLabels:
+  app: promtail
+
+images:
+  - name: docker.io/grafana/promtail
+    newName: docker.io/grafana/promtail
+    newTag: 2.6.1
+
+# configMapGenerator:
+#   - name: promtail-envs
+#     envs:
+#       - promtail.env
+
+secretGenerator:
+  - name: promtail
+    files:
+      - promtail.yaml
+

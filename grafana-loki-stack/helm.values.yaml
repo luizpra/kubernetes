@@ -1,0 +1,24 @@
+# repo - grafana https://grafana.github.io/helm-charts
+# chart - loki/stack
+# this fils was generated from - helm show values grafana/loki-stack
+
+loki:
+  enabled: true
+
+promtail:
+  enabled: true
+
+fluent-bit:
+  enabled: false
+
+grafana:
+  enabled: false
+
+prometheus:
+  enabled: false
+
+filebeat:
+  enabled: false
+
+logstash:
+  enabled: false
