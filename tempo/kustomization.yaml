@@ -1,0 +1,31 @@
+namespace: default
+
+resources:
+  - serviceaccount.yaml
+  - service.yaml
+  - statefulset.yaml
+
+commonLabels:
+  app: tempo
+
+images:
+  - name: grafana/tempo
+    newName: grafana/tempo
+    newTag: 1.5.0
+
+replicas:
+  - name: tempo
+    count: 1
+
+configMapGenerator:
+  # - name: grafana-envs
+  #   envs:
+  #     - grafana.env
+  - name: tempo
+    files:
+      - overrides.yaml
+      - tempo.yaml
+  - name: tempo-query
+    files:
+      - tempo-query.yaml
+

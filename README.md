@@ -21,5 +21,5 @@ helm show values <repo>/<chart>
 helm template <name> <repo>/<chart> --values <files> -n <namespace>
 
 # Install directly on the cluster
-helm isntall <name> <repo>/<chart> --values <files> -n <namespace>
+helm install <name> <repo>/<chart> --values <files> -n <namespace>
 ```
