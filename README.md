@@ -23,3 +23,10 @@ helm template <name> <repo>/<chart> --values <files> -n <namespace>
 # Install directly on the cluster
 helm install <name> <repo>/<chart> --values <files> -n <namespace>
 ```
+
+
+# Rolldice exampele
+
+```
+curl -iL rolldice.k8s.local
+```

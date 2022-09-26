@@ -11,7 +11,11 @@ spec:
       containers:
         - name: kiali
           image: "quay.io/kiali/kiali:v1.55"
-          imagePullPolicy: "IfNotPresent"
+          imagePullPolicy: "Always"
+          command:
+            - "/opt/kiali/kiali"
+            - "-config"
+            - "/kiali-configuration/config.yaml"               
           ports:
             - name: api-port
               containerPort: 20001
@@ -48,13 +52,7 @@ spec:
               memory: 64Mi
           volumeMounts:
             - name: config-volume
-              mountPath: /etc/kiali/kiali.ini
-              subPath: kiali.ini
-            - name: storage-volume
-              mountPath: /var/lib/kiali
-            - name: config-volume
-              mountPath: "/etc/kiali/provisioning/datasources/datasources.yaml"
-              subPath: "datasources.yaml"
+              mountPath: "/kiali-configuration"
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
