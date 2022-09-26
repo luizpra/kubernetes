@@ -4,6 +4,12 @@ metadata:
   name: promtail
 spec:
   template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3101"
+        prometheus.io/path: "/metrics"
+        kiali.io/dashboards: myapp,myapp2
     spec:
       serviceAccountName: promtail
       securityContext:

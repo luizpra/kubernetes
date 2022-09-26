@@ -58,6 +58,12 @@ external_services:
     enabled: true
   istio:
     root_namespace: istio-system
+  grafana:
+    enabled: true
+    # Grafana service name is "grafana" and is in the "telemetry" namespace.
+    in_cluster_url: 'http://grafana.istio-system.svc.cluster.local:3000/'
+    # Public facing URL of Grafana
+    url: 'http://grafana.k8s.local:8080'    
 identity:
   cert_file: ""
   private_key_file: ""
@@ -81,3 +87,51 @@ server:
   metrics_port: 9090
   port: 20001
   web_root: /kiali
+
+custom_dashboards:
+- name: myapp
+  title: My App Metrics
+  items:
+  - chart:
+      name: "Pomtail Read Bytes Total"
+      spans: 6
+      metricName: "promtail_read_bytes_total"
+      dataType: "raw"
+  - chart:
+      name: "Pomtail Fieles Bytes Total"
+      spans: 4
+      metricName: "promtail_file_bytes_total"
+      dataType: "raw"
+- name: myapp2
+  title: My App Metrics
+  items:
+  - chart:
+      name: "Pomtail Read Bytes Total"
+      spans: 12
+      metricName: "promtail_read_bytes_total"
+      dataType: "raw"
+  - chart:
+      name: "Pomtail Fieles Bytes Total"
+      spans: 12
+      metricName: "promtail_file_bytes_total"
+      dataType: "raw"  
+
+
+
+# - name: go_goroutines
+#   title: Max Usage
+#   items:
+#   - chart:
+#       name: "max_usage_bytes"
+#       chartType: line
+#       unit: "bytes"
+#       spans: 6
+#       metricName: "container_memory_max_usage_bytes"
+#       dataType: "raw"
+#   externalLinks:
+#   - name: "max_usage_bytes_dash"
+#     type: "grafana"
+#     variables:
+#       app: var-app
+#       namespace: var-namespace
+#       version: var-version      

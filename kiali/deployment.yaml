@@ -35,7 +35,7 @@ spec:
               port: api-port
               scheme: HTTP
             initialDelaySeconds: 5
-            periodSeconds: 30
+            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /kiali/healthz
