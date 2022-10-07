@@ -1,0 +1,16 @@
+resources:
+- deployment.yaml
+- service.yaml
+
+commonLabels:
+  app: kibana
+
+images:
+  - name: docker.elastic.co/kibana/kibana
+    newName: docker.elastic.co/kibana/kibana
+    newTag: 6.8.20
+
+configMapGenerator:
+  - name: kibana-envs
+    envs:
+      - kibana.env    

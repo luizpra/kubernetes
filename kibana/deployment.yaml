@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+spec:
+  strategy:
+    type: Recreate
+  template:
+    mmetadata:
+      annotatations:
+        sidecar.istio.io/inject: true
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: kibana
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1000
+        image: "docker.elastic.co/kibana/kibana:6.8.20"
+        imagePullPolicy: "IfNotPresent"
+        envFrom:
+        - configMapRef:
+            name: kibana-envs
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 3
+          timeoutSeconds: 5
+          exec:
+            command:
+            - sh
+            - -c
+            - |
+              #!/usr/bin/env bash -e
+              # Disable nss cache to avoid filling dentry cache when calling curl
+              # This is required with Kibana Docker using nss < 3.52
+              export NSS_SDB_USE_CACHE=no
+              http () {
+                  local path="${1}"
+                  set -- -XGET -s --fail -L
+                  if [ -n "${ELASTICSEARCH_USERNAME}" ] && [ -n "${ELASTICSEARCH_PASSWORD}" ]; then
+                    set -- "$@" -u "${ELASTICSEARCH_USERNAME}:${ELASTICSEARCH_PASSWORD}"
+                  fi
+                  STATUS=$(curl --output /dev/null --write-out "%{http_code}" -k "$@" "http://localhost:5601${path}")
+                  if [[ "${STATUS}" -eq 200 ]]; then
+                    exit 0
+                  fi
+                  echo "Error: Got HTTP code ${STATUS} but expected a 200"
+                  exit 1
+              }
+              http "/app/kibana"
+        ports:
+        - containerPort: 5601
+        resources:
+          limits:
+            cpu: 300m
+            memory: 1Gi
+          requests:
+            cpu: 150m
+            memory: 0.5Gi
+        # volumeMounts:
+        #   {}
