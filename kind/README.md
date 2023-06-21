@@ -1,8 +1,18 @@
 # Kubernetes -  Kind
 
+* [Quick Start](https://kind.sigs.k8s.io/docs/user/quick-start/)
+* [Ingress](https://kind.sigs.k8s.io/docs/user/ingress)
+* [Load balancer](https://kind.sigs.k8s.io/docs/user/loadbalancer)
+* [Kind Github Releases](https://github.com/kubernetes-sigs/kind/releases)
+* [Configuration](https://kind.sigs.k8s.io/docs/user/configuration/)
+* [Docker Registry](https://hub.docker.com/_/registry)
+
+
 ```sh
 kind create cluster --config kind.yml
 ```
+
+
 
 ### Deploy dashboard
 
