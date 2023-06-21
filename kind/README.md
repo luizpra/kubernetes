@@ -7,11 +7,14 @@
 * [Configuration](https://kind.sigs.k8s.io/docs/user/configuration/)
 * [Docker Registry](https://hub.docker.com/_/registry)
 
-
+Creating from `kind.yml`
 ```sh
 kind create cluster --config kind.yml
 ```
-
+Deleting cluster
+```sh
+kind delete cluster
+```
 
 
 ### Deploy dashboard
