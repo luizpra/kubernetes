@@ -9,11 +9,15 @@
 
 Creating from `kind.yml`
 ```sh
-kind create cluster --config kind.yml
+kind create cluster --config kind-3w-1cp.yml
 ```
 Deleting cluster
 ```sh
-kind delete cluster
+kind delete clusters kind
+``` 
+Check docker usage
+```sh
+docker stats
 ```
 
 

@@ -6,6 +6,32 @@ export NAMESPACE=test
 kustomize build  | envsubst \$NAMESPACE | kubectl apply -f -
 ```
 
+
+# Kustomization
+
+[Kustomize](https://kubectl.docs.kubernetes.io/references/kustomize/)
+[Kustomization file](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/)
+
+### [Kustomization Resources](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/resource/)
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- myNamespace.yaml
+- sub-dir/some-deployment.yaml
+- ../../commonbase
+# on browser https://github.com/kubernetes-sigs/kustomize/tree/v1.0.6/examples/multibases
+- github.com/kubernetes-sigs/kustomize/examples/multibases?ref=v1.0.6
+- deployment.yaml
+- github.com/kubernets-sigs/kustomize/examples/helloWorld?ref=test-branch
+```
+
+
+
+https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/resource/
+
+
 # Helm cheat sheet
 
 ```sh
@@ -30,3 +56,6 @@ helm install <name> <repo>/<chart> --values <files> -n <namespace>
 ```
 curl -iL rolldice.k8s.local
 ```
+
+
+[GoGetter](https://github.com/hashicorp/go-getter#url-format)
