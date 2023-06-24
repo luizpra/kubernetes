@@ -1,5 +1,10 @@
 # Rancher
 
+Installation locally
+```
+sudo docker run --privileged -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher
+```
+
 ## Helm Installation - Production grade
 
 [Ref](https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/resources/choose-a-rancher-version)
