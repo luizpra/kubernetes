@@ -6,6 +6,12 @@ export NAMESPACE=test
 kustomize build  | envsubst \$NAMESPACE | kubectl apply -f -
 ```
 
+# Docker 
+
+Connect a container to a network
+```sh
+docker network connect bridgeB container1
+```
 
 # Kustomization
 
@@ -59,3 +65,4 @@ curl -iL rolldice.k8s.local
 
 
 [GoGetter](https://github.com/hashicorp/go-getter#url-format)
+[Rancher and Kind](https://github.com/ozbillwang/rancher-in-kind)
