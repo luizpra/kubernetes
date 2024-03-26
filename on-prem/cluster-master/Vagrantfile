@@ -1,0 +1,94 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+
+Vagrant.configure(2) do |config|
+  config.hostmanager.enabled = true
+  # config.hostmanager.manage_host = true
+  config.hostmanager.manage_guest = true
+  config.hostmanager.ignore_private_ip = false
+  config.hostmanager.include_offline = true
+
+  config.vm.define "kube-api" do |lb|
+    lb.vm.box = "ubuntu/jammy64"
+    lb.vm.box_check_update = false
+    lb.vm.hostname = "kube-api"
+    lb.vm.network "private_network", ip: "192.168.56.10"
+    lb.vm.provider "virtualbox" do |v|
+      v.name = "kube-api"
+      v.memory = 1024
+      v.cpus = 1
+    end
+    lb.vm.provision "shell", privileged: true, inline: <<-SHELL
+    #!/bin/bash
+    apt update -y
+    apt install nginx -y
+    cat <<EOF >/etc/nginx/nginx.conf
+load_module /usr/lib/nginx/modules/ngx_stream_module.so;
+events {
+    worker_connections 1024;
+}
+stream {
+    upstream backend_server {
+        zone   backend_server 64k;
+        server 192.168.56.11:6443;
+        server 192.168.56.12:6443;
+        server 192.168.56.13:6443;
+    }
+    server {
+        listen 6443;
+        proxy_pass backend_server;
+    }
+}
+EOF
+cat /etc/nginx/nginx.conf
+service nginx restart
+service nginx status
+systemctl stop ufw
+systemctl disable ufw
+SHELL
+  end
+
+  # Kubernetes Master Node
+  MasterCount = 3
+  (1..MasterCount).each do |i|
+    config.vm.define "kubernetes-master#{i}" do |master|
+      master.vm.box = "ubuntu/jammy64"
+      master.vm.box_check_update = false
+      master.vm.hostname = "kubernetes-master#{i}"
+      master.vm.network "private_network", ip: "192.168.56.1#{i}"
+      master.vm.provider "virtualbox" do |v|
+        v.name = "master#{i}"
+        v.memory = 2048
+        v.cpus = 2
+      end
+      master.vm.provision "shell" do |s|
+        s.privileged = true
+        s.path = "install.sh"
+        s.env = { 'IS_MASTER' => "TRUE",
+                  'IP_ADDRESS' => "192.168.56.1#{i}" }
+      end
+    end
+  end
+
+  # Kubernetes Worker Nodes
+  NodeCount = 3
+  (1..NodeCount).each do |i|
+    config.vm.define "kubernetes-node#{i}" do |node|
+      node.vm.box = "ubuntu/jammy64"
+      node.vm.box_check_update = false
+      node.vm.hostname = "kubernetes-node#{i}"
+      node.vm.network "private_network", ip: "192.168.56.2#{i}"
+      node.vm.provider "virtualbox" do |v|
+        v.name = "node#{i}"
+        v.memory = 2048
+        v.cpus = 2
+      end
+      node.vm.provision "shell" do |s|
+        s.privileged = true
+        s.path = "install.sh"
+      end
+    end
+  end
+end

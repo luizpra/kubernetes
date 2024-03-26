@@ -1,0 +1,124 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+
+Vagrant.configure(2) do |config|
+  config.hostmanager.enabled = true
+  config.hostmanager.manage_host = true
+  config.hostmanager.manage_guest = true
+  config.hostmanager.ignore_private_ip = false
+  config.hostmanager.include_offline = true
+
+  config.vm.define "kube-api" do |lb|
+    lb.vm.box = "ubuntu/jammy64"
+    lb.vm.box_check_update = false
+    lb.vm.hostname = "kube-api"
+    lb.vm.network "private_network", ip: "192.168.56.20"
+    lb.vm.provider "virtualbox" do |v|
+      v.name = "kube-api"
+      v.memory = 1024
+      v.cpus = 1
+    end
+    lb.vm.provision "shell", privileged: true, inline: <<-SHELL
+    #!/bin/bash
+    apt update -y
+    apt install nginx -y
+    cat <<EOF >/etc/nginx/nginx.conf
+load_module /usr/lib/nginx/modules/ngx_stream_module.so;
+events {
+    worker_connections 1024;
+}
+
+stream {
+    upstream backend_server {
+        zone   backend_server 64k;
+        server kubernetes-master:6443;
+    }
+    server {
+        listen 6443;
+        proxy_pass backend_server;
+    }
+}
+EOF
+cat /etc/nginx/nginx.conf
+service nginx restart
+service nginx status
+systemctl stop ufw
+systemctl disable ufw
+SHELL
+  end
+
+  config.vm.define "kubernetes-master" do |master|
+    master.vm.box = "ubuntu/jammy64"
+    master.vm.box_check_update = false
+    master.vm.hostname = "kubernetes-master"
+    master.vm.network "private_network", ip: "192.168.56.21"
+    master.vm.provider "virtualbox" do |v|
+      v.name = "master"
+      v.memory = 2048
+      v.cpus = 2
+    end
+    master.vm.provision "shell", privileged: true,  inline: <<-SHELL
+apt-get update -y
+apt-get install -y apt-transport-https ca-certificates curl gpg
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
+apt-get update -y
+apt-get install -y kubelet kubeadm kubectl containerd
+apt-mark hold kubelet kubeadm kubectl
+cat <<EOF | tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+## Network setup
+modprobe overlay
+modprobe br_netfilter
+# sysctl params required by setup, params persist across reboots
+cat <<EOF | tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+sysctl --system
+apt-get update -y
+apt-get install -y apt-transport-https ca-certificates curl gpg
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
+apt-get update -y
+apt-get install -y kubelet kubeadm kubectl containerd
+apt-mark hold kubelet kubeadm kubectl
+mkdir /etc/containerd
+containerd config default | tee /etc/containerd/config.toml
+sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+systemctl restart containerd
+systemctl stop ufw
+systemctl disable ufw
+kubeadm init --config /vagrant/kube.yml --upload-certs --v=5
+export KUBECONFIG=/etc/kubernetes/admin.conf
+kubectl apply -f /vagrant/canal.yaml
+sleep 3
+kubectl get pod --all-namespaces
+    SHELL
+  end
+
+  # # Kubernetes Worker Nodes
+  # NodeCount = 3
+  # (1..NodeCount).each do |i|
+
+  #   config.vm.define "kubernetes-node#{i}" do |node|
+  #     node.vm.box = "ubuntu/jammy64"
+  #     node.vm.box_check_update = false
+  #     #node.vm.box_version = "v20210112.0.0"
+  #     node.vm.hostname = "kubernetes-node#{i}"
+  #     node.vm.network "private_network", ip: "192.168.56.11#{i}"
+
+  #     node.vm.provider "virtualbox" do |v|
+  #       v.name = "node#{i}"
+  #       v.memory = 2048
+  #       v.cpus = 2
+  #     end
+  #     # node.vm.provision "shell", path: "init.sh"
+  #   end
+  # end
+end

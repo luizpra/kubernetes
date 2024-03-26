@@ -23,13 +23,21 @@
 #}
 ```
 ```sh
-kubeadm init --control-plane-endpoint="kube-api:6443" \
-    --apiserver-advertise-address=192.168.56.101 \
-    --apiserver-bind-port=6443 \
-    --kubernetes-version=v1.29.0 \
-    --pod-network-cidr=10.244.0.0/16 \
+kubeadm init --control-plane-endpoint kube-api:6443 \
+    --apiserver-advertise-address 192.168.56.101 \
+    --apiserver-bind-port 6443 \
+    --kubernetes-version v1.29.0 \
+    --pod-network-cidr 10.244.0.0/16 \
     --upload-certs --v=5
 ```
+
+kubeadm init phase addon kube-proxy \
+  --control-plane-endpoint="kubernetes-master1:6443" \
+  --pod-network-cidr=10.244.0.0/16  
+
+
+kubeadm init phase addon coredns
+
 ```
 kubeadm join kube-api:6443 --token eghnoy.yzpxi23wtkwwgdsc --discovery-token-ca-cert-hash sha256:f46683464a7b287c055d6b1874cfa8cbbf6c2cff32a3e29dcb045894c2859430 \
     --control-plane \
@@ -37,3 +45,9 @@ kubeadm join kube-api:6443 --token eghnoy.yzpxi23wtkwwgdsc --discovery-token-ca-
     --apiserver-bind-port=6443 
 ```
 
+kubeadm init --config kube.yml --upload-certs --v=5
+kubeadm init phase upload-certs --upload-certs --config=kube.yml --v=5
+
+
+https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/
+https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/

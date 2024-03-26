@@ -20,65 +20,62 @@ sudo sysctl --system
 ###################################################################################################
 ##### Installing docker with containerd
 # Add Docker's official GPG key:
-sudo apt-get update -y
-sudo apt-get install ca-certificates curl -y
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
+# sudo apt-get update -y
+# sudo apt-get install ca-certificates curl -y
+# sudo install -m 0755 -d /etc/apt/keyrings
+# sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+# sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update -y
-sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+# # Add the repository to Apt sources:
+# echo \
+#   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+#   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+#   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+# sudo apt-get update -y
+# sudo apt-get install docker-ce docker-ce-cli containerd.io -y
 
+# apt install containerd -y
 ###################################################################################################
 ########## kubeadmin kubelet kubectl
 sudo apt-get update -y
-# apt-transport-https may be a dummy package; if so, you can skip that package
 sudo apt-get install -y apt-transport-https ca-certificates curl gpg
-
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
-
-sudo apt-get update
-sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-get update -y
+sudo apt-get install -y kubelet kubeadm kubectl containerd
 sudo apt-mark hold kubelet kubeadm kubectl
 # sudo systemctl enable --now kubelet # optional
 
 ###################################################################################################
 ##########  Configurrations
 # cat <<EOF >kubeadm-config.yaml
-# # kubeadm-config.yaml
 # kind: ClusterConfiguration
 # apiVersion: kubeadm.k8s.io/v1beta3
-# #kubernetesVersion: v1.21.0
+# kubernetesVersion: v1.29.0
+# controlPlaneEndpoint: kube-api:6443
 # networking:
 #   podSubnet: 10.244.0.0/16
 # ---
 # kind: KubeletConfiguration
 # apiVersion: kubelet.config.k8s.io/v1beta1
-#   cgroupDriver: systemd
+# cgroupDriver: systemd
 # EOF
 
 # containerd config to work with Kubernetes >=1.26
-echo "SystemdCgroup = true" > /etc/containerd/config.toml
-systemctl restart containerd
+mkdir /etc/containerd
+containerd config default | tee /etc/containerd/config.toml
+sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
 
-# Just disable ufw
+systemctl restart containerd
 sudo systemctl stop ufw
 sudo systemctl disable ufw
 
 #########################################################
 # DigitalOcean with firewall (VxLAN with Flannel) - could be resolved in the future by allowing IP-in-IP in the firewall settings
-#echo "deploying kubernetes (with canal)..."
-#kubeadm init --config kubeadm-config.yaml # add --apiserver-advertise-address="ip" if you want to use a different IP address than the main server IP
-#kubeadm init --config kubeadm-config.yaml # add --apiserver-advertise-address="ip" if you want to use a different IP address than the main server IP
-#export KUBECONFIG=/etc/kubernetes/admin.conf
-#curl https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/canal.yaml -O
+# echo "deploying kubernetes (with canal)..."
+# kubeadm init --config kubeadm-config.yaml # add --apiserver-advertise-address="ip" if you want to use a different IP address than the main server IP
+# export KUBECONFIG=/etc/kubernetes/admin.conf
+# curl https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/canal.yaml -O
 #kubectl apply -f canal.yaml
 #echo "HINT: "
 #echo "run the command: export KUBECONFIG=/etc/kubernetes/admin.conf if kubectl doesn't work"
