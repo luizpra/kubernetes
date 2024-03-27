@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Variabls .........."
+echo ""
 echo $IS_MASTER
 echo $IP_ADDRESS
 echo ""
@@ -40,9 +40,35 @@ systemctl restart containerd
 systemctl stop ufw
 systemctl disable ufw
 
-# kubeadm init --config /vagrant/kube.yml --upload-certs --v=5
-# export KUBECONFIG=/etc/kubernetes/admin.conf
-# kubectl apply -f /vagrant/canal.yaml
-# sleep 3
-# kubectl get pod --all-namespaces
+if [ $IS_MASTER = "true" ]; then
+    if [ $IP_ADDRESS = "192.168.56.11" ]; then
+        rm /vagrant/admin.conf
+        rm /vagrant/join.sh
+        rm /vagrant/join-control-plane.sh
+        echo "Kubeadm initializing ...." 
+        sleep 3
+        kubeadm init --config /vagrant/kube.yml --upload-certs --v=5
+        cp /etc/kubernetes/admin.conf /vagrant/
+        export KUBECONFIG=/vagrant/admin.conf
+        kubectl apply -f /vagrant/canal.yaml
+        sleep 3
+        kubectl get pod --all-namespaces
+        JOIN_CMD=$(kubeadm token create --print-join-command)
+        JOIN_CMD_CONTROL_PLANE="$JOIN_CMD --control-plane --certificate-key e6a2eb8581237ab72a4f494f30285ec12a9694d750b9785706a83bfcbbbd2204"
+        echo "$JOIN_CMD" > /vagrant/join.sh
+        echo "$JOIN_CMD_CONTROL_PLANE" > /vagrant/join-control-plane.sh
+        chmod +x /vagrant/join.sh
+        chmod +x /vagrant/join-control-plane.sh
+    else
+        echo "Joining control plane node ..."
+        CMD=$(cat /vagrant/join-control-plane.sh)
+        CMD=$(echo "$CMD --apiserver-advertise-address $IP_ADDRESS --v=5")
+        echo "Running $CMD"
+        eval "$CMD"
+    fi
+else
+    echo "Joining worker node ..."
+    echo "Running $(cat /vagrant/join.sh)"
+    /vagrant/join.sh
+fi
 

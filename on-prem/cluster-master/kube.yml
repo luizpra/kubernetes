@@ -14,3 +14,5 @@ kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: "192.168.56.11"
   bindPort: 6443
+# this is sensitive information
+certificateKey: "e6a2eb8581237ab72a4f494f30285ec12a9694d750b9785706a83bfcbbbd2204"  
