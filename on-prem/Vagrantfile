@@ -20,43 +20,15 @@ Vagrant.configure(2) do |config|
       v.memory = 1024
       v.cpus = 1
     end
-    lb.vm.provision "shell", privileged: true, inline: <<-SHELL
-    #!/bin/bash
-    apt update -y
-    apt install nginx -y
-    cat <<EOF >/etc/nginx/nginx.conf
-load_module /usr/lib/nginx/modules/ngx_stream_module.so;
-events {
-    worker_connections 1024;
-}
-stream {
-    upstream backend_server {
-        zone   backend_server 64k;
-        server 192.168.56.11:6443;
-        server 192.168.56.12:6443;
-        server 192.168.56.13:6443;
-    }
-    server {
-        listen 6443;
-        proxy_pass backend_server;
-    }
-}
-EOF
-cat /etc/nginx/nginx.conf
-service nginx restart
-service nginx status
-systemctl stop ufw
-systemctl disable ufw
-SHELL
+    lb.vm.provision "shell", privileged: true, path: "nginx-install.sh"
   end
 
-  # Kubernetes Master Node
   MasterCount = 3
   (1..MasterCount).each do |i|
-    config.vm.define "kubernetes-master#{i}" do |master|
+    config.vm.define "master#{i}" do |master|
       master.vm.box = "ubuntu/jammy64"
       master.vm.box_check_update = false
-      master.vm.hostname = "kubernetes-master#{i}"
+      master.vm.hostname = "master#{i}"
       master.vm.network "private_network", ip: "192.168.56.1#{i}"
       master.vm.provider "virtualbox" do |v|
         v.name = "master#{i}"
@@ -67,23 +39,25 @@ SHELL
         s.privileged = true
         s.path = "install.sh"
         s.env = { 'IS_MASTER' => "true",
-                  'IP_ADDRESS' => "192.168.56.1#{i}" }
+                  'IP_ADDRESS' => "192.168.56.1#{i}",
+                  'CERT_KEY' => "e6a2eb8581237ab72a4f494f30285ec12a9694d750b9785706a83bfcbbbd2204",
+                  'TOKEN' => 'czungj.clmo71x9u7wmeo61',
+                  'TOKEN_CA_CERT_HASH' => 'sha256:77848a1451487cf9fc1e44f5f971bbf27f76790a9227596353cc7bfb9c5e5d7d' }
       end
     end
   end
 
-  # Kubernetes Worker Nodes
   NodeCount = 3
   (1..NodeCount).each do |i|
-    config.vm.define "kubernetes-node#{i}" do |node|
+    config.vm.define "node#{i}" do |node|
       node.vm.box = "ubuntu/jammy64"
       node.vm.box_check_update = false
-      node.vm.hostname = "kubernetes-node#{i}"
+      node.vm.hostname = "node#{i}"
       node.vm.network "private_network", ip: "192.168.56.2#{i}"
       node.vm.provider "virtualbox" do |v|
         v.name = "node#{i}"
-        v.memory = 2048
-        v.cpus = 2
+        v.memory = 16384
+        v.cpus = 4
       end
       node.vm.provision "shell" do |s|
         s.privileged = true

@@ -50,11 +50,12 @@ if [ $IS_MASTER = "true" ]; then
         kubeadm init --config /vagrant/kube.yml --upload-certs --v=5
         cp /etc/kubernetes/admin.conf /vagrant/
         export KUBECONFIG=/vagrant/admin.conf
-        kubectl apply -f /vagrant/canal.yaml
+        # kubectl apply -f /vagrant/canal.yaml
+        kubectl apply -f /vagrant/calico.yaml
         sleep 3
         kubectl get pod --all-namespaces
         JOIN_CMD=$(kubeadm token create --print-join-command)
-        JOIN_CMD_CONTROL_PLANE="$JOIN_CMD --control-plane --certificate-key e6a2eb8581237ab72a4f494f30285ec12a9694d750b9785706a83bfcbbbd2204"
+        JOIN_CMD_CONTROL_PLANE="$JOIN_CMD --control-plane --certificate-key $CERT_KEY"
         echo "$JOIN_CMD" > /vagrant/join.sh
         echo "$JOIN_CMD_CONTROL_PLANE" > /vagrant/join-control-plane.sh
         chmod +x /vagrant/join.sh
