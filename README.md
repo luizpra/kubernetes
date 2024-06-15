@@ -66,3 +66,7 @@ curl -iL rolldice.k8s.local
 
 [GoGetter](https://github.com/hashicorp/go-getter#url-format)
 [Rancher and Kind](https://github.com/ozbillwang/rancher-in-kind)
+
+
+# Kuberntes on alpine
+[Linke](https://wiki.alpinelinux.org/wiki/K8s)
