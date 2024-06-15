@@ -69,4 +69,6 @@ curl -iL rolldice.k8s.local
 
 
 # Kuberntes on alpine
-[Linke](https://wiki.alpinelinux.org/wiki/K8s)
+vagrant box -> `generic/alpine318`
+
+[Link](https://wiki.alpinelinux.org/wiki/K8s)
