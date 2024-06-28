@@ -1,4 +1,11 @@
 resources:
 - https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/high-availability-1.21+.yaml
 
-# --kubelet-insecure-tls added this o the deployment
+patches:
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --kubelet-insecure-tls
+    target: 
+      kind: Deployment 
+      name: metrics-server

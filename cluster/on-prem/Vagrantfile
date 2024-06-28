@@ -3,12 +3,28 @@
 
 # ENV['VAGRANT_NO_PARALLEL'] = 'yes'
 
+system("
+    if [ #{ARGV[0]} = 'up' ]; then
+        echo 'You are doing vagrant up and can execute your script'
+    fi
+")
+
 Vagrant.configure(2) do |config|
   config.hostmanager.enabled = true
   config.hostmanager.manage_host = true
   config.hostmanager.manage_guest = true
   config.hostmanager.ignore_private_ip = false
   config.hostmanager.include_offline = true
+
+  # Pre-provision shell script 
+  config.vm.provision "shell", path: "pre_provision.sh", run: "once" # un inside vm
+
+  # Trigger to run pre-provision script on host
+  config.trigger.before :up do |trigger|
+    trigger.info = "Running pre-provision script on host..."
+    trigger.run = {path: "pre_provision.sh"}
+  end
+
 
   config.vm.define "kube-api" do |lb|
     lb.vm.box = "ubuntu/jammy64"
@@ -19,6 +35,7 @@ Vagrant.configure(2) do |config|
       v.name = "kube-api"
       v.memory = 1024
       v.cpus = 1
+      v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
     end
     lb.vm.provision "shell", privileged: true, path: "nginx-install.sh"
   end
@@ -34,6 +51,7 @@ Vagrant.configure(2) do |config|
         v.name = "master#{i}"
         v.memory = 2048
         v.cpus = 2
+        v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
       end
       master.vm.provision "shell" do |s|
         s.privileged = true
@@ -58,6 +76,7 @@ Vagrant.configure(2) do |config|
         v.name = "node#{i}"
         v.memory = 16384
         v.cpus = 4
+        v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
       end
       node.vm.provision "shell" do |s|
         s.privileged = true
@@ -65,4 +84,14 @@ Vagrant.configure(2) do |config|
       end
     end
   end
+
+  # Post-provision shell script
+  config.vm.provision "shell", path: "post_provision.sh", run: "once" # run inside vm
+
+  # Trigger to run post-provision script on host
+  config.trigger.after :provision do |trigger|
+    trigger.info = "Running post-provision script on host..."
+    trigger.run = {path: "post_provision.sh"}
+  end
+
 end
