@@ -1,0 +1,110 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+
+system("
+    if [ #{ARGV[0]} = 'up' ]; then
+        echo 'You are doing vagrant up and can execute your script'
+    fi
+")
+
+Vagrant.configure(2) do |config|
+  config.hostmanager.enabled = true
+  config.hostmanager.manage_host = true
+  config.hostmanager.manage_guest = true
+  config.hostmanager.ignore_private_ip = false
+  config.hostmanager.include_offline = true
+  base_address = "192.168.58"
+  dns_lb = "kube-api"
+
+  config.vm.define "kube-api" do |lb|
+    lb.vm.box = "ubuntu/jammy64"
+    lb.vm.box_check_update = false
+    lb.vm.hostname = "#{dns_lb}"
+    lb.vm.network "private_network", ip: "#{base_address}.100"
+    lb.vm.provider "virtualbox" do |v|
+      v.name = "#{dns_lb}"
+      v.memory = 1024
+      v.cpus = 1
+      v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+    end
+    lb.vm.provision "shell", privileged: true, inline: <<-SHELL
+apt update -y
+apt install nginx -y
+cat <<EOF >/etc/nginx/nginx.conf
+load_module /usr/lib/nginx/modules/ngx_stream_module.so;
+events {
+    worker_connections 1024;
+}
+stream {
+    upstream backend_server {
+        zone   backend_server 64k;
+        server 192.168.58.111:6443;
+        server 192.168.58.112:6443;
+        server 192.168.58.113:6443;
+    }
+    server {
+        listen 6443;
+        proxy_pass backend_server;
+    }
+}
+EOF
+cat /etc/nginx/nginx.conf
+service nginx restart
+service nginx status
+systemctl stop ufw
+systemctl disable ufw
+SHELL
+
+  end
+
+  MasterCount = 3
+  (1..MasterCount).each do |i|
+    config.vm.define "master#{i}" do |master|
+      master.vm.box = "ubuntu/jammy64"
+      master.vm.box_check_update = false
+      master.vm.hostname = "master#{i}"
+      master.vm.network "private_network", ip: "#{base_address}.11#{i}"
+      master.vm.provider "virtualbox" do |v|
+        v.name = "master#{i}"
+        v.memory = 2048
+        v.cpus = 2
+        v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+      end
+     master.vm.provision "shell" do |s|
+       s.privileged = true
+       s.path = "install.sh"
+       s.env = { 'IS_MASTER' => "true",
+                 'DNS_LB' => "#{dns_lb}",
+                 'IP_ADDRESS' => "#{base_address}.11#{i}" }
+     end
+    end
+  end
+
+ NodeCount = 3
+ (1..NodeCount).each do |i|
+   config.vm.define "node#{i}" do |node|
+     node.vm.box = "ubuntu/jammy64"
+     node.vm.box_check_update = false
+     node.vm.hostname = "node#{i}"
+     node.vm.network "private_network", ip: "#{base_address}.12#{i}"
+     node.vm.provider "virtualbox" do |v|
+       v.name = "node#{i}"
+       v.memory = 16384
+       v.cpus = 4
+       v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+     end
+     node.vm.provision "shell" do |s|
+       s.privileged = true
+       s.path = "install.sh"
+     end
+   end
+ end
+
+ config.trigger.after :destroy do |trigger|
+   trigger.info = "Removing files ..."
+   trigger.run = {inline: "bash -c 'rm -rf admin.conf join.sh join-control-plane.sh kube.yml'"}
+ end
+
+end
