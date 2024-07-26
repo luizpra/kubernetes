@@ -1,3 +1,4 @@
 .vagrant
 **/join*.sh
 admin.conf
+kube.yml
