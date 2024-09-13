@@ -1,0 +1,7 @@
+namespace: kafka
+
+resources:
+  - namespace.yaml
+  - https://strimzi.io/install/latest?namespace=kafka
+  - https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/security/tls-auth/kafka.yaml
+  - https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/security/tls-auth/user.yaml

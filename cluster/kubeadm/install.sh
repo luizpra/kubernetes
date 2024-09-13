@@ -64,6 +64,10 @@ kubernetesVersion: v1.30.0
 controlPlaneEndpoint: "$DNS_LB:6443"
 networking:
   podSubnet: 10.244.0.0/16
+apiServer:
+  certSANs:
+    - "k8s.iztec.dev"
+    - "kubernetes.iztec.dev"  
 ---
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
