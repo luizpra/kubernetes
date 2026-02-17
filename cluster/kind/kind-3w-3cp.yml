@@ -4,6 +4,10 @@ name: kind
 nodes:
 - role: control-plane
   image: kindest/node:${K8S_VERSION}
+- role: control-plane
+  image: kindest/node:${K8S_VERSION}
+- role: control-plane
+  image: kindest/node:${K8S_VERSION}
 - role: worker
   image: kindest/node:${K8S_VERSION}
 - role: worker

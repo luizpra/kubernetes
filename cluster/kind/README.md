@@ -9,7 +9,8 @@
 
 Creating from `kind.yml`
 ```sh
-kind create cluster --config kind-3w-1cp.yml
+export K8S_VERSION=v1.30.0
+envsubst < kind-3w-1cp.yml | kind create cluster --config=-
 ```
 Creating cluster
 ```yaml
