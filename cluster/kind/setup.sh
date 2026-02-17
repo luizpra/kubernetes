@@ -17,6 +17,7 @@ if [ -z "${K8S_VERSION:-}" ]; then
 fi
 
 CLUSTER_NAME="${1:-kind}"
+CONFIG_FILE="${2:-kind-3w-3cp.yml}"
 
 export K8S_VERSION
 
@@ -31,5 +32,5 @@ if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
   fi
 fi
 
-echo "Creating Kind cluster '${CLUSTER_NAME}' with Kubernetes ${K8S_VERSION}..."
-envsubst < "${SCRIPT_DIR}/kind-3w-1cp.yml" | kind create cluster --name "${CLUSTER_NAME}" --config=-
+echo "Creating Kind cluster '${CLUSTER_NAME}' with Kubernetes ${K8S_VERSION} using ${CONFIG_FILE}..."
+envsubst < "${SCRIPT_DIR}/${CONFIG_FILE}" | kind create cluster --name "${CLUSTER_NAME}" --config=-
