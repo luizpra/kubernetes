@@ -1,0 +1,269 @@
+---
+- hosts: k3s_servers
+  become: yes
+  vars_files:
+    - group_vars/k3s.yml
+  tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - wget
+          - kmod
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Load required kernel modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - br_netfilter
+        - overlay
+      ignore_errors: yes
+
+    - name: Persist kernel modules on boot
+      copy:
+        dest: /etc/modules-load.d/k3s.conf
+        content: |
+          br_netfilter
+          overlay
+
+    - name: Set required sysctl params
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: yes
+        reload: yes
+      loop:
+        - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+        - { key: "net.ipv4.ip_forward", value: "1" }
+      ignore_errors: yes
+
+    - name: Create k3s config directory
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: '0755'
+
+    - name: Create k3s config for LXC/container compatibility
+      copy:
+        dest: /etc/rancher/k3s/config.yaml
+        content: |
+          kubelet-arg:
+            - feature-gates=KubeletInUserNamespace=true
+
+    - name: Override k3s systemd ExecStartPre for LXC containers
+      copy:
+        dest: /etc/systemd/system/k3s.service.d/override.conf
+        content: |
+          [Service]
+          ExecStartPre=
+
+    - name: Disable swap
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+
+    - name: Get first server IP
+      set_fact:
+        first_server_ip: "{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] | default(groups['k3s_servers'][0]) }}"
+
+    - name: Check if k3s is already installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Download and install k3s control plane (server)
+      shell: curl -sfL https://get.k3s.io | sh -s - --cluster-init {{ k3s_server_args }}
+      environment:
+        K3S_KUBECONFIG_MODE: "644"
+        K3S_VERSION: "{{ k3s_version }}"
+        K3S_TOKEN: "{{ k3s_token }}"
+      when:
+        - not k3s_binary.stat.exists
+        - inventory_hostname == groups['k3s_servers'][0]
+      register: k3s_install_first
+
+    - name: Download and install k3s control plane (additional servers)
+      shell: curl -sfL https://get.k3s.io | sh -s - --server https://{{ first_server_ip }}:6443 {{ k3s_server_args }}
+      environment:
+        K3S_KUBECONFIG_MODE: "644"
+        K3S_VERSION: "{{ k3s_version }}"
+        K3S_TOKEN: "{{ k3s_token }}"
+      when:
+        - not k3s_binary.stat.exists
+        - inventory_hostname != groups['k3s_servers'][0]
+      register: k3s_install_additional
+
+    - name: Reload systemd and restart k3s
+      systemd:
+        name: k3s
+        state: restarted
+        daemon_reload: yes
+
+    - name: Wait for k3s startup
+      wait_for:
+        path: /etc/rancher/k3s/k3s.yaml
+        delay: 5
+        timeout: 120
+
+    - name: Wait for k3s API server to be ready
+      wait_for:
+        host: 127.0.0.1
+        port: 6443
+        delay: 5
+        timeout: 180
+
+    - name: Create .kube directory
+      file:
+        path: ~/.kube
+        state: directory
+        mode: '0700'
+
+    - name: Copy kubeconfig to user home
+      copy:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ~/.kube/config
+        remote_src: yes
+        mode: '0600'
+
+    - name: Show k3s status
+      command: /usr/local/bin/k3s kubectl get nodes
+      register: k3s_nodes
+      retries: 15
+      delay: 5
+      until: k3s_nodes.rc == 0
+
+    - name: Display k3s nodes
+      debug:
+        msg: "{{ k3s_nodes.stdout }}"
+
+    - name: Install k9s (Kubernetes UI)
+      shell: |
+        set -euo pipefail
+        cd /tmp
+        curl -fL --retry 3 --retry-delay 2 \
+          "https://github.com/derailed/k9s/releases/download/{{ k9s_version }}/k9s_Linux_amd64.tar.gz" \
+          -o k9s.tar.gz
+        tar xzf k9s.tar.gz k9s
+        mv k9s /usr/local/bin/k9s
+        chmod +x /usr/local/bin/k9s
+        rm -f k9s.tar.gz
+      args:
+        creates: /usr/local/bin/k9s
+        executable: /bin/bash
+
+    - name: Verify k9s installation
+      command: /usr/local/bin/k9s version
+      register: k9s_version_output
+      ignore_errors: yes
+
+    - name: Display k9s version
+      debug:
+        msg: "{{ k9s_version_output.stdout }}"
+      when: k9s_version_output.rc == 0
+
+- hosts: k3s_agents
+  become: yes
+  vars_files:
+    - group_vars/k3s.yml
+  tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - wget
+          - kmod
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Load required kernel modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - br_netfilter
+        - overlay
+      ignore_errors: yes
+
+    - name: Persist kernel modules on boot
+      copy:
+        dest: /etc/modules-load.d/k3s.conf
+        content: |
+          br_netfilter
+          overlay
+
+    - name: Set required sysctl params
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: yes
+        reload: yes
+      loop:
+        - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+        - { key: "net.ipv4.ip_forward", value: "1" }
+      ignore_errors: yes
+
+    - name: Create k3s config directory
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: '0755'
+
+    - name: Create k3s config for LXC/container compatibility
+      copy:
+        dest: /etc/rancher/k3s/config.yaml
+        content: |
+          kubelet-arg:
+            - feature-gates=KubeletInUserNamespace=true
+
+    - name: Override k3s systemd ExecStartPre for LXC containers
+      copy:
+        dest: /etc/systemd/system/k3s.service.d/override.conf
+        content: |
+          [Service]
+          ExecStartPre=
+
+    - name: Disable swap
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+
+    - name: Get first server IP
+      set_fact:
+        first_server_ip: "{{ hostvars[groups['k3s_servers'][0]]['ansible_host'] | default(groups['k3s_servers'][0]) }}"
+
+    - name: Check if k3s agent is already installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_agent_binary
+
+    - name: Download and install k3s agent (worker)
+      shell: curl -sfL https://get.k3s.io | sh -s - {{ k3s_agent_args }}
+      environment:
+        K3S_VERSION: "{{ k3s_version }}"
+        K3S_TOKEN: "{{ k3s_token }}"
+        K3S_URL: "https://{{ first_server_ip }}:6443"
+      when: not k3s_agent_binary.stat.exists
+      register: k3s_agent_install
+
+    - name: Show k3s-agent status
+      command: systemctl status k3s-agent
+      register: agent_status
+
+    - name: Display agent status
+      debug:
+        msg: "{{ agent_status.stdout }}"
